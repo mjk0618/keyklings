@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ko" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keyklings: The Void Archive</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- 1. Pinyon Script: Calligraphy for Main Title -->
+    <link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&display=swap" rel="stylesheet">
+    
+    <!-- 2. Bodoni Moda: Modern Serif for Headers/Nav -->
+    <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&display=swap" rel="stylesheet">
+    
+    <!-- 3. Manrope & Space Mono: Body & Code -->
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500&family=Space+Mono&display=swap" rel="stylesheet">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,200,0,0" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'calligraphy': ['"Pinyon Script"', 'cursive'],
+                        'serif': ['"Bodoni Moda"', 'serif'],
+                        'sans': ['"Manrope"', 'sans-serif'],
+                        'mono': ['"Space Mono"', 'monospace'],
+                    },
+                    colors: {
+                        'void': '#020202',
+                        'off-black': '#0a0a0a',
+                        'silver': '#e2e2e2',
+                        'mute': '#888888',
+                        'accent-gold': '#D4AF37',
+                        'border-dim': 'rgba(255, 255, 255, 0.08)',
+                    },
+                    backgroundImage: {
+                        'noise': "url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%221.2%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22 opacity=%220.07%22/%3E%3C/svg%3E')",
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #020202; color: #e2e2e2; cursor: default; }
+        .grain-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); }
+        
+        /* JS Link Utility */
+        .js-link { cursor: pointer; }
+
+        /* Text Cross-fade Animation */
+        .text-swap-container {
+            display: grid;
+            place-items: center;
+        }
+        .text-swap-item {
+            grid-area: 1 / 1;
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased overflow-x-hidden bg-void">
+
+    <div class="grain-overlay"></div>
+
+    <!-- Header / Nav -->
+    <header class="fixed top-0 w-full z-40 px-8 py-6 flex justify-between items-center mix-blend-difference bg-void/50 backdrop-blur-sm border-b border-white/5">
+        <div onclick="window.scrollTo(0,0)" class="flex flex-col group cursor-pointer">
+            <h1 class="font-serif text-2xl tracking-tighter italic leading-none text-white group-hover:text-accent-gold transition-colors font-bold">Keyklings</h1>
+            <span class="font-mono text-[10px] tracking-[0.2em] text-gray-500 uppercase mt-1">Vector Space 2025</span>
+        </div>
+
+        <nav class="hidden md:flex items-center gap-8">
+            <div onclick="location.href='pages/latents.html'" class="js-link font-mono text-xs tracking-widest uppercase text-gray-400 hover:text-accent-gold transition-colors relative group">
+                Latents
+                <span class="absolute -bottom-1 left-0 w-0 h-px bg-accent-gold transition-all group-hover:w-full"></span>
+            </div>
+            <div onclick="location.href='pages/embeddings.html'" class="js-link font-mono text-xs tracking-widest uppercase text-gray-400 hover:text-blue-400 transition-colors relative group">
+                Embeddings
+                <span class="absolute -bottom-1 left-0 w-0 h-px bg-blue-400 transition-all group-hover:w-full"></span>
+            </div>
+            <div onclick="location.href='pages/checkpoints.html'" class="js-link font-mono text-xs tracking-widest uppercase text-gray-400 hover:text-emerald-400 transition-colors relative group">
+                Checkpoints
+                <span class="absolute -bottom-1 left-0 w-0 h-px bg-emerald-400 transition-all group-hover:w-full"></span>
+            </div>
+        </nav>
+
+        <button onclick="alert('This would link to your GitHub repo')" class="group relative overflow-hidden rounded-full border border-white/20 px-5 py-2 transition-all hover:border-white/60 hover:bg-white/5">
+            <span class="relative z-10 flex items-center gap-2 text-xs tracking-widest uppercase font-mono text-gray-300 group-hover:text-white">
+                <span class="material-symbols-outlined text-sm">terminal</span>
+                Connect
+            </span>
+        </button>
+    </header>
+
+    <!-- HERO SECTION -->
+    <section id="hero" class="relative h-screen w-full overflow-hidden border-b border-white/5 flex flex-col items-center justify-center">
+        
+        <!-- 
+           INTERACTIVE CENTER CONTENT 
+           - 'peer' class allows siblings (like the background image) to react to this element's hover state.
+           - Width restricted to 'w-fit' and padding added to narrow the trigger area.
+        -->
+        <div class="peer relative z-20 flex flex-col items-center justify-center p-12 cursor-default group">
+            
+            <!-- 2. Main Title (Bolder Pinyon Script) -->
+            <div class="text-center px-4 mb-8">
+                <!-- Added font-bold and drop-shadow-lg to simulate weight -->
+                <p class="font-calligraphy text-8xl md:text-9xl text-white font-bold drop-shadow-lg transition-transform duration-500 group-hover:scale-105">
+                    Keyklings
+                </p>
+            </div>
+
+            <!-- 3. Text Swap Container (Narrow width) -->
+            <div class="w-full max-w-lg px-4 h-32 text-swap-container">
+                
+                <!-- Default Text -->
+                <div class="text-swap-item opacity-100 group-hover:opacity-0 group-hover:translate-y-4">
+                    <div class="text-center">
+                        <p class="font-mono text-sm tracking-[0.5em] uppercase text-gray-400">Mapping the Unseen</p>
+                        <p class="font-serif text-2xl italic mt-4 text-white font-light">"Echoes in the vector space."</p>
+                    </div>
+                </div>
+
+                <!-- Hover Text -->
+                <div class="text-swap-item opacity-0 -translate-y-4 group-hover:opacity-100 group-hover:translate-y-0">
+                    <div class="text-center">
+                        <p class="font-mono text-sm tracking-[0.3em] uppercase text-accent-gold mb-3">Key + Inklings</p>
+                        <p class="font-serif text-lg leading-relaxed text-gray-200">
+                            "The <strong>Inklings</strong> forged myths in Oxford's light.<br>
+                            We are <strong>Keyklings</strong>, drafting new realities<br>
+                            where code meets the latent dark."
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- 1. Background Image (Reacts to 'peer-hover') -->
+        <!-- Path updated: src/keyklings.png -->
+        <div class="absolute inset-0 z-0 flex items-center justify-center transition-opacity duration-700 opacity-0 peer-hover:opacity-20 pointer-events-none">
+            <img src="src/keyklings.png" alt="Keyklings Logo" class="w-[500px] h-auto object-contain filter grayscale invert opacity-80 mix-blend-screen">
+        </div>
+
+        <!-- Scroll Hint -->
+        <div class="absolute bottom-10 left-1/2 -translate-x-1/2 opacity-30 animate-pulse pointer-events-none">
+            <span class="material-symbols-outlined font-thin text-3xl">arrow_downward</span>
+        </div>
+    </section>
+
+    <!-- BOARD SECTION -->
+    <section class="relative z-10 w-full max-w-[1600px] mx-auto min-h-screen">
+        <div class="grid grid-cols-1 lg:grid-cols-3 min-h-screen">
+            
+            <!-- Column 1: Latents -->
+            <div id="latents" class="relative group border-r border-border-dim border-dashed lg:border-solid lg:border-white/5 p-8 lg:p-12 transition-colors duration-700 hover:bg-white/[0.02]">
+                <div class="mb-12">
+                    <span class="font-mono text-xs text-accent-gold border border-accent-gold/30 px-2 py-1 rounded-full">01 — CHAOS</span>
+                    <h2 class="font-serif text-4xl italic mt-6 text-white font-bold">Latents</h2>
+                    <p class="font-sans text-sm text-mute mt-2 font-light leading-relaxed">The Sketchbook.<br>Where noise becomes signal.</p>
+                </div>
+                <div class="space-y-12">
+                    
+                    <!-- REAL POST LINK -->
+                    <div onclick="location.href='pages/page.html?board=latents&post=251125_kv_compression'" class="js-link block relative pl-6 border-l border-white/10 hover:border-accent-gold transition-colors duration-300 group/item">
+                        <span class="absolute -left-[5px] top-0 w-2.5 h-2.5 bg-void border border-white/20 rounded-full group-hover/item:border-accent-gold transition-colors"></span>
+                        <h3 class="font-sans text-lg font-normal text-silver group-hover/item:text-white transition-colors">KV Cache Compression: A Sketch</h3>
+                        <p class="font-serif italic text-mute mt-2 group-hover/item:text-gray-400">"Reducing memory footprint in long-context inference"</p>
+                        <div class="flex items-center gap-3 mt-4">
+                            <span class="font-mono text-[10px] text-gray-600">2025.05.20</span>
+                            <span class="font-mono text-[10px] text-accent-gold/50 border border-accent-gold/20 px-1 rounded">#MEMORY</span>
+                        </div>
+                    </div>
+
+                    <!-- Dummy Post -->
+                    <div class="relative pl-6 border-l border-white/10 hover:border-accent-gold transition-colors duration-300 cursor-pointer group/item">
+                        <span class="absolute -left-[5px] top-0 w-2.5 h-2.5 bg-void border border-white/20 rounded-full group-hover/item:border-accent-gold transition-colors"></span>
+                        <h3 class="font-sans text-lg font-normal text-silver group-hover/item:text-white">Sketch #042: Noise Pattern</h3>
+                        <div class="w-full h-32 mt-3 bg-white/5 border border-white/5 flex items-center justify-center overflow-hidden group-hover/item:border-white/20 transition-colors">
+                            <div class="w-full h-full opacity-40" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%225%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/%3E%3C/svg%3E')"></div>
+                        </div>
+                        <span class="block mt-4 font-mono text-[10px] text-gray-600">SRC: /latents/sketch_042/noise.png</span>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Column 2: Embeddings -->
+            <div id="embeddings" class="relative group border-r border-border-dim border-dashed lg:border-solid lg:border-white/5 p-8 lg:p-12 transition-colors duration-700 hover:bg-white/[0.02]">
+                <div class="mb-12">
+                    <span class="font-mono text-xs text-blue-400 border border-blue-400/30 px-2 py-1 rounded-full">02 — LOGIC</span>
+                    <h2 class="font-serif text-4xl italic mt-6 text-white font-bold">Embeddings</h2>
+                    <p class="font-sans text-sm text-mute mt-2 font-light leading-relaxed">The Essays.<br>Mapping the world into words.</p>
+                </div>
+                <div class="space-y-0">
+                    <div onclick="location.href='#'" class="js-link block group/item py-6 border-t border-white/5 hover:border-blue-400/50 transition-colors">
+                        <div class="flex justify-between items-baseline mb-2">
+                            <h3 class="font-serif text-2xl text-silver group-hover/item:text-blue-200 transition-colors">The Ghost in the Weights</h3>
+                            <span class="material-symbols-outlined text-sm opacity-0 group-hover/item:opacity-100 transition-opacity -rotate-45">arrow_forward</span>
+                        </div>
+                        <p class="font-sans text-sm text-gray-500 font-light leading-relaxed line-clamp-2 group-hover/item:text-gray-400">Exploring the emergent behaviors in large language models...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 3: Checkpoints -->
+            <div id="checkpoints" class="relative group p-8 lg:p-12 transition-colors duration-700 hover:bg-white/[0.02]">
+                <div class="mb-12">
+                    <span class="font-mono text-xs text-emerald-400 border border-emerald-400/30 px-2 py-1 rounded-full">03 — MEMORY</span>
+                    <h2 class="font-serif text-4xl italic mt-6 text-white font-bold">Checkpoints</h2>
+                    <p class="font-sans text-sm text-mute mt-2 font-light leading-relaxed">The Archive.<br>Knowledge preserved.</p>
+                </div>
+                <div class="flex flex-col gap-6">
+                    <div class="bg-white/[0.03] p-6 border border-white/5 hover:border-emerald-500/30 transition-all group/file cursor-pointer">
+                        <div class="flex items-start justify-between">
+                            <span class="material-symbols-outlined text-emerald-500/70 font-thin text-3xl">save</span>
+                            <span class="font-mono text-[9px] text-gray-600">728MB</span>
+                        </div>
+                        <h4 class="mt-4 font-sans font-medium text-white">model_v1_final.ckpt</h4>
+                        <div class="mt-4 flex gap-4 text-[10px] font-mono text-gray-500 uppercase">
+                            <span>Step: 5000</span>
+                            <span class="text-emerald-500">Verified</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/10 py-16 bg-off-black relative z-10">
+        <div class="max-w-4xl mx-auto text-center px-6">
+            <h2 class="font-serif text-3xl italic text-gray-500 mb-2 font-bold">Keyklings</h2>
+            <p class="font-mono text-[10px] text-gray-500 tracking-[0.3em] uppercase mb-12">© 2025 All Weights Preserved</p>
+            <a href="https://github.com/keyklings" target="_blank" class="inline-flex flex-col items-center group cursor-pointer opacity-70 hover:opacity-100 transition-opacity duration-500">
+                <span class="material-symbols-outlined text-2xl text-gray-400 mb-2 group-hover:text-white transition-colors">terminal</span>
+                <span class="font-mono text-xs text-gray-400 group-hover:text-emerald-400 transition-colors">
+                    <span class="hidden group-hover:inline">&gt; git clone </span>keyklings/core
+                </span>
+            </a>
+        </div>
+    </footer>
+
+</body>
+</html>

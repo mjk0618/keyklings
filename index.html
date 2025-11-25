@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="ko" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keyklings: The Void Archive</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500&family=Space+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,200,0,0" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'calligraphy': ['"Pinyon Script"', 'cursive'],
+                        'serif': ['"Bodoni Moda"', 'serif'],
+                        'sans': ['"Manrope"', 'sans-serif'],
+                        'mono': ['"Space Mono"', 'monospace'],
+                    },
+                    colors: {
+                        'void': '#020202',
+                        'off-black': '#0a0a0a',
+                        'silver': '#e2e2e2',
+                        'mute': '#888888',
+                        'accent-gold': '#D4AF37',
+                        'accent-blue': '#60A5FA',
+                        'accent-emerald': '#34D399',
+                        'border-dim': 'rgba(255, 255, 255, 0.08)',
+                    },
+                    backgroundImage: {
+                        'noise': "url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%221.2%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22 opacity=%220.07%22/%3E%3C/svg%3E')",
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #020202; color: #e2e2e2; cursor: default; }
+        .grain-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); }
+        .js-link { cursor: pointer; }
+        .text-swap-container { display: grid; place-items: center; }
+        .text-swap-item { grid-area: 1 / 1; transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out; }
+        
+        .prose h1 { font-family: 'Bodoni Moda', serif; font-size: 2.2rem; margin-top: 3rem; margin-bottom: 1.5rem; color: #fff; text-align: center; }
+        .prose h2 { font-family: 'Manrope', sans-serif; font-size: 1.5rem; margin-top: 2.5rem; margin-bottom: 1rem; color: #e2e2e2; text-align: left; }
+        .prose p { font-family: 'Manrope', sans-serif; margin-bottom: 1.5rem; line-height: 1.8; color: #ccc; font-weight: 300; font-size: 1rem; }
+        .prose blockquote { border-left: 2px solid #333; padding-left: 1.5rem; font-style: italic; color: #888; margin: 2rem 0; }
+        .prose pre { background: #111; padding: 1.5rem; border-radius: 8px; border: 1px solid #333; overflow-x: auto; margin: 2rem 0; text-align: left; }
+        .prose code { font-family: 'Space Mono', monospace; font-size: 0.9em; color: #D4AF37; }
+        .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1.5rem; color: #ccc; font-size: 1rem; }
+        .prose img { border-radius: 8px; margin: 2rem auto; border: 1px solid #333; }
+        
+        .prose { text-align: left; margin-left: auto; margin-right: auto; }
+        .prose ul, .prose ol { display: block; text-align: left; }
+
+        .view-section { display: none; opacity: 0; transition: opacity 0.5s ease; }
+        .view-section.active { display: block; opacity: 1; }
+    </style>
+</head>
+<body class="font-sans antialiased overflow-x-hidden bg-void min-h-screen flex flex-col">
+
+    <div class="grain-overlay"></div>
+
+    <header class="fixed top-0 w-full z-50 px-8 py-6 flex justify-between items-center mix-blend-difference bg-void/80 backdrop-blur-md border-b border-white/5 transition-all duration-300" id="main-header">
+        <div onclick="router.navigate('')" class="flex flex-col group cursor-pointer">
+            <h1 class="font-serif text-2xl tracking-tighter italic leading-none text-white group-hover:text-accent-gold transition-colors font-bold">Keyklings</h1>
+            <span class="font-mono text-[10px] tracking-[0.2em] text-gray-500 uppercase mt-1">Vector Space 2025</span>
+        </div>
+
+        <nav class="hidden md:flex items-center gap-8">
+            <div onclick="router.navigate('?board=latents')" class="js-link font-mono text-xs tracking-widest uppercase text-gray-400 hover:text-accent-gold transition-colors relative group">
+                Latents
+                <span class="absolute -bottom-1 left-0 w-0 h-px bg-accent-gold transition-all group-hover:w-full"></span>
+            </div>
+            <div onclick="router.navigate('?board=embeddings')" class="js-link font-mono text-xs tracking-widest uppercase text-gray-400 hover:text-blue-400 transition-colors relative group">
+                Embeddings
+                <span class="absolute -bottom-1 left-0 w-0 h-px bg-blue-400 transition-all group-hover:w-full"></span>
+            </div>
+            <div onclick="router.navigate('?board=checkpoints')" class="js-link font-mono text-xs tracking-widest uppercase text-gray-400 hover:text-emerald-400 transition-colors relative group">
+                Checkpoints
+                <span class="absolute -bottom-1 left-0 w-0 h-px bg-emerald-400 transition-all group-hover:w-full"></span>
+            </div>
+        </nav>
+
+        <button onclick="window.open('https://github.com/mjk0618/keyklings', '_blank')" class="group relative overflow-hidden rounded-full border border-white/20 px-5 py-2 transition-all hover:border-white/60 hover:bg-white/5">
+            <span class="relative z-10 flex items-center gap-2 text-xs tracking-widest uppercase font-mono text-gray-300 group-hover:text-white">
+                <span class="material-symbols-outlined text-sm">terminal</span>
+                Connect
+            </span>
+        </button>
+    </header>
+
+    <main class="flex-grow relative w-full">
+
+        <div id="view-home" class="view-section active">
+            <section id="hero" class="group relative h-screen w-full overflow-hidden border-b border-white/5 flex flex-col items-center justify-center">
+                
+                <div class="text-center px-4 mb-6 relative z-20 pointer-events-none">
+                    <p class="font-calligraphy text-8xl md:text-9xl text-white font-bold drop-shadow-lg">
+                        Keyklings
+                    </p>
+                </div>
+
+                <div class="peer group relative z-30 inline-block p-2 cursor-default">
+                    <div class="text-swap-container h-20 w-[400px]"> 
+                        
+                        <div class="text-swap-item opacity-100 group-hover:opacity-0 group-hover:translate-y-2 transition-all duration-500">
+                            <div class="text-center">
+                                <p class="font-mono text-xs tracking-[0.5em] uppercase text-gray-400">Mapping the Unseen</p>
+                                <p class="font-serif text-2xl italic mt-2 text-white font-light">"Echoes in the vector space."</p>
+                            </div>
+                        </div>
+                        
+                        <div class="text-swap-item opacity-0 -translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
+                            <div class="text-center">
+                                <p class="font-mono text-xs tracking-[0.3em] uppercase text-accent-gold mb-2">Key + Inklings</p>
+                                <p class="font-serif text-lg leading-relaxed text-gray-200">
+                                    "The <strong>Inklings</strong> forged myths in Oxford's light.<br>
+                                    We are <strong>Keyklings</strong>, drafting new realities<br>
+                                    where code meets the latent dark."
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="absolute inset-0 z-0 flex items-center justify-center transition-opacity duration-700 opacity-0 peer-hover:opacity-20 pointer-events-none">
+                    <img src="src/keyklings.png" alt="Keyklings Logo" class="w-[500px] h-auto object-contain filter grayscale invert opacity-80 mix-blend-screen">
+                </div>
+
+                <div class="absolute bottom-10 left-1/2 -translate-x-1/2 opacity-30 animate-pulse pointer-events-none">
+                    <span class="material-symbols-outlined font-thin text-3xl">arrow_downward</span>
+                </div>
+            </section>
+
+            <section class="relative z-10 w-full max-w-[1600px] mx-auto h-auto pb-0">
+                <div class="grid grid-cols-1 lg:grid-cols-3">
+                    
+                    <div id="preview-latents" class="relative group border-r border-border-dim border-dashed lg:border-solid lg:border-white/5 px-8 pt-8 pb-6 lg:px-12 lg:pt-12 lg:pb-6 transition-colors duration-700 hover:bg-white/[0.02]">
+                        <div class="mb-16 cursor-pointer" onclick="router.navigate('?board=latents')">
+                            <span class="font-mono text-xs text-accent-gold border border-accent-gold/30 px-2 py-1 rounded-full">01 — CHAOS</span>
+                            <h2 class="font-serif text-4xl italic mt-6 text-white font-bold hover:text-accent-gold transition-colors">Latents</h2>
+                            <p class="font-sans text-sm text-mute mt-2 font-light leading-relaxed">The Sketchbook.<br>Where noise becomes signal.</p>
+                        </div>
+                        <div class="content-list space-y-12"></div>
+                        <div class="mt-12 pt-6 border-t border-white/5 hidden footer-more">
+                            <div onclick="router.navigate('?board=latents')" class="js-link flex items-center gap-2 group/link cursor-pointer">
+                                <span class="font-mono text-[10px] uppercase tracking-widest text-gray-500 group-hover/link:text-accent-gold transition-colors count-label">View More</span>
+                                <span class="material-symbols-outlined text-xs text-gray-600 group-hover/link:text-accent-gold transition-colors">arrow_right_alt</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="preview-embeddings" class="relative group border-r border-border-dim border-dashed lg:border-solid lg:border-white/5 px-8 pt-8 pb-6 lg:px-12 lg:pt-12 lg:pb-6 transition-colors duration-700 hover:bg-white/[0.02]">
+                        <div class="mb-16 cursor-pointer" onclick="router.navigate('?board=embeddings')">
+                            <span class="font-mono text-xs text-blue-400 border border-blue-400/30 px-2 py-1 rounded-full">02 — LOGIC</span>
+                            <h2 class="font-serif text-4xl italic mt-6 text-white font-bold hover:text-blue-400 transition-colors">Embeddings</h2>
+                            <p class="font-sans text-sm text-mute mt-2 font-light leading-relaxed">The Essays.<br>Mapping the world into words.</p>
+                        </div>
+                        <div class="content-list space-y-12"></div>
+                        <div class="mt-12 pt-6 border-t border-white/5 hidden footer-more">
+                            <div onclick="router.navigate('?board=embeddings')" class="js-link flex items-center gap-2 group/link cursor-pointer">
+                                <span class="font-mono text-[10px] uppercase tracking-widest text-gray-500 group-hover/link:text-blue-400 transition-colors count-label">View More</span>
+                                <span class="material-symbols-outlined text-xs text-gray-600 group-hover/link:text-blue-400 transition-colors">arrow_right_alt</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="preview-checkpoints" class="relative group px-8 pt-8 pb-6 lg:px-12 lg:pt-12 lg:pb-6 transition-colors duration-700 hover:bg-white/[0.02]">
+                        <div class="mb-16 cursor-pointer" onclick="router.navigate('?board=checkpoints')">
+                            <span class="font-mono text-xs text-emerald-400 border border-emerald-400/30 px-2 py-1 rounded-full">03 — MEMORY</span>
+                            <h2 class="font-serif text-4xl italic mt-6 text-white font-bold hover:text-emerald-400 transition-colors">Checkpoints</h2>
+                            <p class="font-sans text-sm text-mute mt-2 font-light leading-relaxed">The Archive.<br>Knowledge preserved.</p>
+                        </div>
+                        <div class="content-list space-y-12"></div>
+                        <div class="mt-12 pt-6 border-t border-white/5 hidden footer-more">
+                            <div onclick="router.navigate('?board=checkpoints')" class="js-link flex items-center gap-2 group/link cursor-pointer">
+                                <span class="font-mono text-[10px] uppercase tracking-widest text-gray-500 group-hover/link:text-emerald-400 transition-colors count-label">View More</span>
+                                <span class="material-symbols-outlined text-xs text-gray-600 group-hover/link:text-emerald-400 transition-colors">arrow_right_alt</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+
+        <div id="view-board" class="view-section pt-32 pb-8 px-6 w-full max-w-[1600px] mx-auto min-h-[60vh]">
+            <div class="mb-20 text-center animate-fade-in">
+                <span id="board-badge" class="font-mono text-xs border px-3 py-1 rounded-full uppercase tracking-widest"></span>
+                <h2 id="board-title" class="font-serif text-5xl md:text-7xl italic mt-6 text-white font-bold tracking-tight"></h2>
+                <p id="board-desc" class="font-sans text-lg text-mute mt-6 font-light max-w-2xl mx-auto leading-relaxed"></p>
+            </div>
+            <div id="board-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-16"></div>
+        </div>
+
+
+        <div id="view-post" class="view-section pt-32 px-6 flex flex-col items-center">
+            <header class="w-full max-w-1xl mb-16 animate-fade-in mx-auto text-center">
+                <div class="flex items-center justify-center gap-4 mb-8">
+                    <button onclick="history.back()" class="flex items-center gap-2 text-gray-500 hover:text-white transition-colors font-mono text-xs uppercase tracking-widest">
+                        <span class="material-symbols-outlined text-sm">arrow_back</span> Back
+                    </button>
+                    <span class="h-px w-8 bg-gray-800"></span>
+                    <span id="post-date" class="font-mono text-xs text-gray-400"></span>
+                </div>
+                <h1 id="post-title" class="font-serif text-4xl md:text-6xl text-white italic leading-tight mb-6 font-bold"></h1>
+                <p id="post-desc" class="font-sans text-lg text-mute font-light leading-relaxed"></p>
+                <div id="post-tags" class="flex gap-3 mt-10 justify-center"></div>
+            </header>
+
+            <article id="post-content" class="prose w-full max-w-4xl animate-fade-in-up mx-auto text-left">
+                <div class="animate-pulse space-y-8">
+                    <div class="h-5 bg-gray-800/50 rounded w-3/4 mx-auto"></div>
+                    <div class="h-5 bg-gray-800/50 rounded w-full mx-auto"></div>
+                    <div class="h-5 bg-gray-800/50 rounded w-5/6 mx-auto"></div>
+                </div>
+            </article>
+        </div>
+
+    </main>
+
+    <footer class="border-t border-white/10 py-8 bg-off-black relative z-10 mt-auto">
+        <div class="max-w-4xl mx-auto text-center px-6">
+            <h2 class="font-serif text-3xl italic text-gray-500 mb-2 font-bold">Keyklings</h2>
+            <p class="font-mono text-xs text-gray-500 tracking-[0.3em] uppercase mb-12">© 2025 All Weights Preserved</p>
+            <div class="flex justify-center gap-8">
+                <a href="https://github.com/mjk0618/keyklings" target="_blank" class="opacity-50 hover:opacity-100 transition-opacity">
+                    <span class="material-symbols-outlined text-2xl text-gray-400">code</span>
+                </a>
+                <a href="mailto:kminjae618@gmail.com" class="opacity-50 hover:opacity-100 transition-opacity">
+                    <span class="material-symbols-outlined text-2xl text-gray-400">mail</span>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const CONFIG = {
+            latents: {
+                title: 'Latents',
+                badge: '01 — Chaos',
+                desc: 'Raw noise, unfinished sketches, and thoughts drifting in the abstract.',
+                colorClass: 'text-accent-gold',
+                borderClass: 'border-accent-gold',
+                hoverBorder: 'hover:border-accent-gold'
+            },
+            embeddings: {
+                title: 'Embeddings',
+                badge: '02 — Logic',
+                desc: 'Mapping the chaotic world into ordered vectors.',
+                colorClass: 'text-blue-400',
+                borderClass: 'border-blue-400',
+                hoverBorder: 'hover:border-blue-400'
+            },
+            checkpoints: {
+                title: 'Checkpoints',
+                badge: '03 — Memory',
+                desc: 'The Archive of solidified knowledge.',
+                colorClass: 'text-emerald-400',
+                borderClass: 'border-emerald-400',
+                hoverBorder: 'hover:border-emerald-400'
+            }
+        };
+
+        const router = {
+            init: () => {
+                window.addEventListener('popstate', router.handleRoute);
+                router.handleRoute();
+            },
+            navigate: (path) => {
+                window.history.pushState({}, '', path || window.location.pathname);
+                router.handleRoute();
+                window.scrollTo(0, 0);
+            },
+            handleRoute: async () => {
+                const params = new URLSearchParams(window.location.search);
+                const board = params.get('board');
+                const post = params.get('post');
+
+                document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+
+                if (board && post) {
+                    document.getElementById('view-post').classList.add('active');
+                    await app.loadPostDetail(board, post);
+                } else if (board) {
+                    document.getElementById('view-board').classList.add('active');
+                    await app.loadBoard(board);
+                } else {
+                    document.getElementById('view-home').classList.add('active');
+                    await app.loadDashboard();
+                }
+            }
+        };
+
+        const app = {
+            loadDashboard: async () => {
+                app.renderPreview('latents', CONFIG.latents);
+                app.renderPreview('embeddings', CONFIG.embeddings); 
+                app.renderPreview('checkpoints', CONFIG.checkpoints);
+            },
+
+            renderPreview: async (boardId, conf) => {
+                const container = document.querySelector(`#preview-${boardId} .content-list`);
+                const footer = document.querySelector(`#preview-${boardId} .footer-more`);
+                const countLabel = footer.querySelector('.count-label');
+                
+                try {
+                    const res = await fetch(`pages/${boardId}/posts.json`);
+                    if(!res.ok) return;
+                    const slugs = await res.json();
+                    
+                    const previews = await Promise.all(slugs.slice(0, 2).map(slug => app.fetchMeta(boardId, slug)));
+                    
+                    container.innerHTML = '';
+                    previews.forEach(post => {
+                        if(post) container.innerHTML += app.getCardTemplate(boardId, post, 'preview', conf);
+                    });
+
+                    if(slugs.length > 2) {
+                        footer.classList.remove('hidden');
+                        const remaining = slugs.length - 2;
+                        countLabel.innerText = `${remaining} more article${remaining > 1 ? 's' : ''}...`;
+                    }
+                } catch(e) { console.warn(e); }
+            },
+
+            loadBoard: async (boardId) => {
+                const conf = CONFIG[boardId];
+                if(!conf) return router.navigate(''); 
+
+                const badge = document.getElementById('board-badge');
+                badge.innerText = conf.badge;
+                badge.className = `font-mono text-xs border px-3 py-1 rounded-full uppercase tracking-widest ${conf.colorClass} border-current/30`;
+                
+                const title = document.getElementById('board-title');
+                title.innerText = conf.title;
+                
+                document.getElementById('board-desc').innerText = conf.desc;
+
+                const grid = document.getElementById('board-grid');
+                grid.innerHTML = '<div class="col-span-full text-center py-20 text-gray-600 font-mono text-lg animate-pulse">Scanning...</div>';
+
+                try {
+                    const res = await fetch(`pages/${boardId}/posts.json`);
+                    if(!res.ok) throw new Error('Index not found');
+                    const slugs = await res.json();
+                    
+                    const posts = await Promise.all(slugs.map(slug => app.fetchMeta(boardId, slug)));
+                    
+                    grid.innerHTML = '';
+                    posts.forEach(post => {
+                        if(post) {
+                            const card = document.createElement('div');
+                            card.className = `group relative p-10 border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10 transition-all duration-500 js-link flex flex-col justify-between min-h-[280px] cursor-pointer`;
+                            card.onclick = () => router.navigate(`?board=${boardId}&post=${post.slug}`);
+                            card.innerHTML = app.getCardTemplate(boardId, post, 'grid', conf);
+                            grid.appendChild(card);
+                        }
+                    });
+                } catch(e) {
+                    grid.innerHTML = `<div class="col-span-full text-center text-red-500 font-mono text-lg">Error loading board.</div>`;
+                }
+            },
+
+            loadPostDetail: async (boardId, slug) => {
+                const conf = CONFIG[boardId];
+                const contentEl = document.getElementById('post-content');
+                
+                document.getElementById('post-title').innerText = 'Loading...';
+                contentEl.innerHTML = '<div class="animate-pulse space-y-8"><div class="h-5 bg-gray-800/50 rounded w-3/4 mx-auto"></div><div class="h-5 bg-gray-800/50 rounded w-full mx-auto"></div></div>';
+
+                try {
+                    const meta = await app.fetchMeta(boardId, slug);
+                    if(!meta) throw new Error('Post not found');
+
+                    document.getElementById('post-title').innerText = meta.title;
+                    document.getElementById('post-desc').innerText = meta.description || '';
+                    document.getElementById('post-date').innerText = meta.date;
+                    
+                    const tagsContainer = document.getElementById('post-tags');
+                    tagsContainer.innerHTML = '';
+                    if(meta.tags) {
+                        meta.tags.forEach(tag => {
+                            const span = document.createElement('span');
+                            span.className = `font-mono text-xs ${conf.colorClass}/70 border border-current/20 px-3 py-1 rounded`;
+                            span.innerText = `#${tag}`;
+                            tagsContainer.appendChild(span);
+                        });
+                    }
+
+                    const basePath = `pages/${boardId}/${slug}`;
+                    if(meta.type === 'html') {
+                        const htmlRes = await fetch(`${basePath}/view.html`).catch(() => fetch(`${basePath}/index.html`));
+                        const htmlText = await htmlRes.text();
+                        contentEl.classList.remove('prose');
+                        contentEl.innerHTML = htmlText;
+                        Array.from(contentEl.querySelectorAll("script")).forEach(oldScript => {
+                            const newScript = document.createElement("script");
+                            Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                            newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                            oldScript.parentNode.replaceChild(newScript, oldScript);
+                        });
+                    } else {
+                        const mdRes = await fetch(`${basePath}/index.md`);
+                        const mdText = await mdRes.text();
+                        contentEl.classList.add('prose');
+                        contentEl.innerHTML = marked.parse(mdText);
+                    }
+
+                } catch(e) {
+                    console.error(e);
+                    contentEl.innerHTML = `<div class="text-center py-20 text-red-500 font-mono">Failed to load content.<br>${e.message}</div>`;
+                }
+            },
+
+            fetchMeta: async (boardId, slug) => {
+                try {
+                    const res = await fetch(`pages/${boardId}/${slug}/metadata.json`);
+                    if(!res.ok) return null;
+                    const meta = await res.json();
+                    return { ...meta, slug };
+                } catch { return null; }
+            },
+
+            getCardTemplate: (boardId, post, mode, conf) => {
+                if (mode === 'preview') {
+                    return `
+                        <div onclick="router.navigate('?board=${boardId}&post=${post.slug}')" class="group/item relative py-4 cursor-pointer transition-all">
+                            <div class="flex justify-between items-start">
+                                <h3 class="font-serif text-xl text-white italic">${post.title}</h3>
+                                <span class="material-symbols-outlined text-sm text-white opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 transform translate-y-2 group-hover/item:translate-y-0">arrow_outward</span>
+                            </div>
+                            <div class="h-px w-0 bg-current ${conf.colorClass} group-hover/item:w-full transition-all duration-500 my-3 opacity-0 group-hover/item:opacity-100"></div>
+                            
+                            <p class="font-sans text-[15px] text-gray-500 line-clamp-2 leading-relaxed font-light group-hover/item:text-gray-300 transition-colors mt-2">
+                                ${post.description}
+                            </p>
+                            
+                            <p class="font-mono text-xs text-gray-600 mt-3">${post.date}</p>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="flex flex-col h-full relative">
+                        <div class="flex justify-between items-start mb-6">
+                            <h3 class="font-serif text-2xl text-silver group-hover:text-white transition-colors italic pr-4 leading-tight">${post.title}</h3>
+                            <span class="material-symbols-outlined text-sm text-white opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">arrow_outward</span>
+                        </div>
+                        
+                        <div class="h-px w-0 bg-current ${conf.colorClass} group-hover:w-full transition-all duration-700 mb-6"></div>
+                        
+                        <p class="font-sans text-sm text-gray-500 leading-relaxed line-clamp-3 flex-grow group-hover:text-gray-300 transition-colors font-light mb-6">
+                            ${post.description}
+                        </p>
+
+                        <div class="mt-auto pt-4 border-t border-white/5 group-hover:border-white/10 transition-colors">
+                            <span class="font-mono text-xs text-gray-600 group-hover:text-gray-400 transition-colors">${post.date}</span>
+                        </div>
+                    </div>
+                `;
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', router.init);
+    </script>
+</body>
+</html>

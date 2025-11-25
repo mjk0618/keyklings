@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Latents | Keyklings</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Manrope:wght@200;300;400;500&family=Space+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,200,0,0" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'serif': ['"Bodoni Moda"', 'serif'],
+                        'sans': ['"Manrope"', 'sans-serif'],
+                        'mono': ['"Space Mono"', 'monospace'],
+                    },
+                    colors: {
+                        'void': '#020202',
+                        'off-black': '#0a0a0a',
+                        'silver': '#e2e2e2',
+                        'mute': '#888888',
+                        'accent-gold': '#D4AF37',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #020202; color: #e2e2e2; }
+        .grain-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); }
+        .js-link { cursor: pointer; }
+    </style>
+</head>
+<body class="bg-void min-h-screen font-sans antialiased overflow-x-hidden">
+
+    <div class="grain-overlay"></div>
+
+    <!-- Navigation -->
+    <header class="fixed top-0 w-full z-40 px-8 py-6 flex justify-between items-center mix-blend-difference bg-void/80 backdrop-blur-sm border-b border-white/5">
+        <div onclick="location.href='../index.html'" class="flex flex-col group cursor-pointer">
+            <h1 class="font-serif text-xl tracking-tighter italic leading-none text-white group-hover:text-accent-gold transition-colors font-bold">Keyklings</h1>
+        </div>
+
+        <nav class="hidden md:flex items-center gap-8">
+            <div class="font-mono text-xs tracking-widest uppercase text-accent-gold border-b border-accent-gold pb-1">Latents</div>
+            <div onclick="location.href='embeddings.html'" class="js-link font-mono text-xs tracking-widest uppercase text-gray-500 hover:text-blue-400 transition-colors">Embeddings</div>
+            <div onclick="location.href='checkpoints.html'" class="js-link font-mono text-xs tracking-widest uppercase text-gray-500 hover:text-emerald-400 transition-colors">Checkpoints</div>
+        </nav>
+
+        <div class="w-8"></div> 
+    </header>
+
+    <!-- Main Content -->
+    <main class="pt-32 pb-20 px-6 w-full max-w-[1400px] mx-auto">
+        
+        <div class="mb-20 text-center">
+            <span class="font-mono text-xs text-accent-gold border border-accent-gold/30 px-3 py-1 rounded-full uppercase tracking-widest">01 — Chaos</span>
+            <h2 class="font-serif text-6xl md:text-8xl italic mt-6 text-white font-bold tracking-tight">Latents</h2>
+            <p class="font-sans text-lg text-mute mt-6 font-light max-w-2xl mx-auto leading-relaxed">
+                Raw noise, unfinished sketches, and thoughts drifting in the abstract.<br>
+                These are the seeds before they become vectors.
+            </p>
+        </div>
+
+        <div id="post-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
+            <div class="col-span-full text-center py-20 text-gray-600 font-mono animate-pulse">
+                Scanning latent space...
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="border-t border-white/10 py-12 bg-off-black text-center">
+        <p class="font-mono text-[10px] text-gray-600 tracking-[0.3em] uppercase">© 2025 Keyklings</p>
+    </footer>
+
+    <script>
+        async function loadPosts() {
+            const grid = document.getElementById('post-grid');
+            
+            try {
+                // 1. Fetch Slug List
+                const res = await fetch('latents/posts.json');
+                if (!res.ok) throw new Error('Failed to load post index');
+                const slugs = await res.json();
+                
+                grid.innerHTML = ''; // Clear loading state
+
+                // 2. Fetch Metadata for each slug
+                const postsData = await Promise.all(slugs.map(async (slug) => {
+                    try {
+                        const metaRes = await fetch(`latents/${slug}/metadata.json`);
+                        if (!metaRes.ok) return null;
+                        const meta = await metaRes.json();
+                        return { ...meta, slug }; // Merge slug for linking
+                    } catch (e) {
+                        console.warn(`Error loading ${slug}`, e);
+                        return null;
+                    }
+                }));
+
+                // 3. Render Cards
+                postsData.forEach(post => {
+                    if (!post) return;
+
+                    const card = document.createElement('div');
+                    card.className = "group relative p-8 border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-accent-gold/50 transition-all duration-500 js-link flex flex-col justify-between min-h-[280px]";
+                    
+                    // Link format: page.html?board=latents&post={slug}
+                    card.onclick = () => {
+                        location.href = `page.html?board=latents&post=${post.slug}`;
+                    };
+
+                    // Handle tags safely
+                    const tagsHtml = post.tags ? post.tags.map(t => 
+                        `<span class="font-mono text-[9px] text-accent-gold/40 border border-accent-gold/10 px-1.5 py-0.5 rounded group-hover:border-accent-gold/40 group-hover:text-accent-gold transition-colors">#${t}</span>`
+                    ).join('') : '';
+
+                    card.innerHTML = `
+                        <div>
+                            <div class="absolute top-6 left-6 w-1.5 h-1.5 rounded-full bg-white/20 group-hover:bg-accent-gold transition-colors"></div>
+                            <div class="flex items-center justify-end gap-3 mb-8 pl-8">
+                                <span class="font-mono text-[10px] text-gray-500 group-hover:text-gray-400 transition-colors">${post.date}</span>
+                                ${tagsHtml}
+                            </div>
+                            <h3 class="font-serif text-3xl text-silver group-hover:text-white transition-colors leading-tight italic pr-4">
+                                ${post.title}
+                            </h3>
+                            <p class="font-sans text-sm text-gray-500 mt-4 font-light leading-relaxed line-clamp-3 group-hover:text-gray-400 transition-colors">
+                                ${post.description || post.subtitle || ''}
+                            </p>
+                        </div>
+                        <div class="mt-8 flex items-center justify-between border-t border-white/5 pt-4 group-hover:border-accent-gold/20 transition-colors">
+                            <span class="font-mono text-[10px] text-gray-600 uppercase tracking-widest group-hover:text-accent-gold transition-colors">Read Note</span>
+                            <span class="material-symbols-outlined text-sm text-gray-600 group-hover:text-accent-gold transition-colors -rotate-45 group-hover:rotate-0 transform duration-300">arrow_forward</span>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+
+            } catch (e) {
+                console.error(e);
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-10">
+                        <p class="text-red-900/50 font-mono text-sm border border-red-900/20 inline-block px-4 py-2 rounded">Error: Index not found.</p>
+                        <p class="text-gray-600 text-xs mt-2">Make sure 'pages/latents/posts.json' exists.</p>
+                    </div>
+                `;
+            }
+        }
+
+        loadPosts();
+    </script>
+</body>
+</html>
