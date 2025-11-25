@@ -26,10 +26,10 @@ If we can identify and keep only these heavy hitters, we might achieve 80% compr
 
 ### **Draft Code Snippet**
 
-```
-def evict\_kv\_cache(cache, attention\_scores, budget):  
-    \# Sort by accumulated attention scores  
-    indices \= torch.topk(attention\_scores, k=budget, dim=-1).indices  
+```python
+def evict_kv_cache(cache, attention_scores, budget):  
+    # Sort by accumulated attention scores  
+    indices = torch.topk(attention_scores, k=budget, dim=-1).indices  
     return cache.gather(indices)
 ```
 ## **TODO**
