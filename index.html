@@ -50,12 +50,26 @@
 
     <style>
         html { scrollbar-gutter: stable; }
-        body { background-color: #020202; color: #e2e2e2; cursor: default; min-height: 100%; overflow-x: hidden; margin: 0; padding: 0; }
-        html, body { overscroll-behavior: none; touch-action: pan-y; height: 100%; }
-        #page-scroll { min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; background-color: #020202; width: 100%; }
-        @media (pointer: coarse) {
-            body { position: fixed; inset: 0; overflow: hidden; width: 100%; height: 100%; }
-            #page-scroll { height: 100vh; }
+        body {
+            background-color: #020202;
+            color: #e2e2e2;
+            cursor: default;
+            min-height: 100vh;
+            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+        }
+        html, body {
+            overscroll-behavior: none;
+            touch-action: pan-y;
+        }
+        #page-scroll {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-color: #020202;
+            width: 100%;
         }
         .grain-overlay { display: none; }
         .js-link { cursor: pointer; }
@@ -127,7 +141,6 @@
             100% { background-position: -22% -14%, 36% 6%; opacity: 0.55; }
         }
 
-        /* Avoid font flash on hero title */
         .fonts-ready #hero-title { opacity: 1; }
         
         .prose h1 { font-family: 'Bodoni Moda', serif; font-size: 2.2rem; margin-top: 3rem; margin-bottom: 1.5rem; color: #fff; text-align: center; }
@@ -143,7 +156,6 @@
         .prose { text-align: left; margin-left: auto; margin-right: auto; }
         .prose ul, .prose ol { display: block; text-align: left; }
 
-        /* Override Tailwind display utilities so hidden views don't reserve space */
         .view-section { display: none !important; opacity: 0; transition: opacity 0.5s ease; }
         .view-section.active { display: block !important; opacity: 1; }
         .view-section.active.flex { display: flex !important; }
@@ -338,7 +350,6 @@
     </div>
 
     <script>
-        // Ensure hero title waits for webfonts to avoid flash of fallback
         if (document.fonts && document.documentElement) {
             document.fonts.ready.then(() => document.documentElement.classList.add('fonts-ready'));
         } else {
