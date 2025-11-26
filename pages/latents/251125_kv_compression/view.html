@@ -1,0 +1,580 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM Memory & KVZip Explorer</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Noto Sans KR', 'Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular'],
+          },
+          colors: {
+            slate: { 850: '#151e2e', 900: '#0f172a', 950: '#020617' },
+            brand: { accent: '#60a5fa', glow: '#38bdf8', pink: '#ec4899' },
+          },
+          animation: { 'pulse-slow': 'pulse 3s ease-in-out infinite' },
+        },
+      },
+    }
+  </script>
+  <style>
+    body { font-family: 'Noto Sans KR', 'Inter', system-ui, sans-serif; background-color: transparent; line-height: 1.6; }
+    .glass-panel { background: rgba(15,23,42,0.72); border: 1px solid rgba(148,163,184,0.15); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 24px 60px rgba(0,0,0,0.35); }
+    .grid-overlay { background-image: linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px); background-size: 80px 80px; }
+    .kv-scope { font-family: 'Noto Sans KR', 'Inter', system-ui, sans-serif; }
+    .kv-scope .font-sans, .kv-scope .prose, .kv-scope p, .kv-scope li { font-family: 'Noto Sans KR', 'Inter', system-ui, sans-serif !important; }
+    .kv-scope .font-mono, .kv-scope code, .kv-scope pre { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', 'Courier New', monospace !important; }
+  </style>
+</head>
+<body class="bg-transparent text-slate-300 selection:bg-brand-accent selection:text-white text-sm md:text-base">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+
+    const IconWrapper = ({ size = 20, className = '', children }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
+    );
+
+    const Icons = {
+      Brain: (props) => (<IconWrapper {...props}><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-4z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-4z"/></IconWrapper>),
+      Zap: (props) => (<IconWrapper {...props}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></IconWrapper>),
+      Search: (props) => (<IconWrapper {...props}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></IconWrapper>),
+      RefreshCw: (props) => (<IconWrapper {...props}><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></IconWrapper>),
+      ArrowRight: (props) => (<IconWrapper {...props}><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></IconWrapper>),
+      ArrowDown: (props) => (<IconWrapper {...props}><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></IconWrapper>),
+      Key: (props) => (<IconWrapper {...props}><path d="m21 2-2 2"/><path d="m7.6 12.6-2.6 2.6"/><path d="m10 11-3.4 3.4"/><circle cx="7.5" cy="12.5" r="5.5"/></IconWrapper>),
+      Film: (props) => (<IconWrapper {...props}><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></IconWrapper>),
+      HelpCircle: (props) => (<IconWrapper {...props}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></IconWrapper>),
+      Lock: (props) => (<IconWrapper {...props}><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></IconWrapper>),
+    };
+
+    const SectionHeader = ({ num, title, subtitle }) => (
+      <div className="flex items-center gap-3 mb-6">
+        <span className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-900 border border-white/10 text-brand-accent font-bold font-mono text-xs shadow-lg shrink-0">{String(num).padStart(2, '0')}</span>
+        <div>
+          <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight">{title}</h2>
+          {subtitle && <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">{subtitle}</p>}
+        </div>
+      </div>
+    );
+
+    const AttentionDemo = () => {
+      const sentence = ["The", "animal", "didn't", "cross", "the", "street", "because", "it", "was", "too", "tired"];
+      const [hoveredIndex, setHoveredIndex] = useState(null);
+
+      const getWeight = (index) => {
+        if (hoveredIndex === null) return 1;
+        if (index === hoveredIndex) return 1;
+        if (hoveredIndex === 7) return index === 1 ? 0.95 : index === 10 ? 0.6 : 0.25;
+        if (hoveredIndex === 10) return index === 7 ? 0.9 : index === 1 ? 0.7 : 0.25;
+        return 0.35;
+      };
+
+      return (
+        <div className="glass-panel p-6 rounded-2xl shadow-2xl">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2 text-xs font-bold text-blue-300 uppercase tracking-wider"><Icons.Zap size={16} /> Interactive Attention Map</div>
+            <span className="text-[10px] text-slate-400">마우스를 단어 위에 올려보세요</span>
+          </div>
+          <div className="bg-slate-900/60 p-5 rounded-xl border border-slate-800 leading-relaxed flex flex-wrap gap-1.5 justify-center">
+            {sentence.map((word, idx) => {
+              const weight = getWeight(idx);
+              const active = hoveredIndex !== null;
+              const highlight = active && weight > 0.55 && idx !== hoveredIndex;
+              return (
+                <span
+                  key={idx}
+                  onMouseEnter={() => setHoveredIndex(idx)}
+                  onMouseLeave={() => setHoveredIndex(null)}
+                  className={`relative inline-block px-2.5 py-1 rounded-md text-sm transition-all duration-200 cursor-pointer ${hoveredIndex === idx ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/40 scale-105 z-10' : 'bg-slate-800/50 hover:bg-slate-800 text-slate-300'}`}
+                  style={{ opacity: active ? Math.max(0.3, weight) : 1, color: highlight ? '#60a5fa' : undefined, fontWeight: highlight ? 700 : 400 }}
+                >
+                  {word}
+                  {highlight && <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[9px] text-blue-300 font-bold bg-slate-900 px-1 rounded shadow">{Math.round(weight * 100)}%</span>}
+                </span>
+              );
+            })}
+          </div>
+          <p className="text-xs text-slate-400 mt-3 leading-relaxed pl-1">
+            위 예시에서 <strong className="text-white">'it'</strong>에 마우스를 올리면, 모델이 이 대명사를 해석하기 위해 <strong>'animal'</strong>(주체)과 <strong>'tired'</strong>(상태)에 높은 가중치를 두는 것을 볼 수 있다. 이것이 Attention이 문맥을 연결하는 방식이다.
+          </p>
+        </div>
+      );
+    };
+
+    const LongContextDemo = () => {
+      const [length, setLength] = useState(10);
+      const dataPoints = useMemo(() => {
+        const ratio = (length - 10) / 90;
+        return Array.from({ length: 50 }, (_, i) => {
+          const x = i / 49;
+          const peak1 = Math.exp(-Math.pow(x - 0.2, 2) / 0.005);
+          const peak2 = Math.exp(-Math.pow(x - 0.8, 2) / 0.005);
+          const base = 0.1;
+          const peaky = base + (peak1 + peak2) * 0.8;
+          const uniform = 0.4 + Math.random() * 0.1;
+          return peaky * (1 - ratio) + uniform * ratio;
+        });
+      }, [length]);
+
+      const pathD = useMemo(() => {
+        const points = dataPoints.map((y, i) => `${(i / 49) * 100},${100 - y * 100}`);
+        return `M0,100 L${points.join(' L')} L100,100 Z`;
+      }, [dataPoints]);
+
+      const memoryUsage = Math.round(length);
+      const overload = memoryUsage > 80;
+
+      return (
+        <div className="glass-panel p-6 rounded-2xl">
+          <div className="flex items-center justify-between mb-6">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Long Context Simulation</h4>
+            <span className="text-[10px] text-brand-accent font-mono bg-blue-500/10 px-2 py-1 rounded border border-blue-500/20">{length}K Tokens</span>
+          </div>
+          <div className="space-y-6">
+            <div className="flex items-center gap-4">
+              <input type="range" min="10" max="100" value={length} onChange={(e) => setLength(Number(e.target.value))} className="flex-1 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand-accent" />
+              <div className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono border ${overload ? 'bg-red-500/20 text-red-300 border-red-500/30' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'}`}>{memoryUsage}% MEM</div>
+            </div>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                <p className="text-[10px] text-slate-500 mb-2 text-center uppercase tracking-wider font-bold">Attention Distribution</p>
+                <div className="h-24 border-b border-slate-700 relative overflow-hidden">
+                  <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="none">
+                    <path d={pathD} fill="url(#gradient)" stroke="none" className="transition-all duration-300" />
+                    <defs>
+                      <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#60a5fa" stopOpacity={length > 70 ? 0.4 : 0.8} />
+                        <stop offset="100%" stopColor="#60a5fa" stopOpacity="0.1" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                </div>
+                <p className="text-xs text-center mt-3 font-medium text-slate-400">{length > 70 ? '균일 분포 (Uniform) - 핵심 정보 흐릿함' : 'Peaky 분포 - 중요 정보 명확'}</p>
+              </div>
+              <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex flex-col justify-center">
+                <p className="text-[10px] text-slate-500 font-bold mb-3 uppercase tracking-wider text-center">KV Cache Memory Load</p>
+                <div className="w-full h-4 bg-slate-800 rounded-full overflow-hidden relative shadow-inner">
+                  <div className={`h-full transition-all duration-300 ${overload ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`} style={{ width: `${memoryUsage}%` }}></div>
+                </div>
+                {overload && <p className="text-xs text-red-400 mt-2 font-bold text-center flex items-center justify-center gap-1"><Icons.Zap size={12}/> Memory Overflow Warning</p>}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const CausalDemo = () => {
+      const [hasContext, setHasContext] = useState(true);
+      const tokens = ['나', '는', '은행', '에', '간다'];
+
+      return (
+        <div className="glass-panel p-6 rounded-2xl space-y-8">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-bold text-emerald-300 uppercase tracking-wider flex items-center gap-2"><Icons.Lock size={14}/> Causal Masking & Implicit Encoding</h4>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 items-start">
+            {/* Left: Masking Viz */}
+            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 flex flex-col items-center">
+              <p className="text-center text-slate-500 text-[10px] font-bold mb-3 uppercase tracking-widest">Lower Triangular Mask Matrix</p>
+              <div className="overflow-x-auto w-full flex justify-center">
+                <div className="grid grid-cols-6 gap-1 text-[10px]">
+                  <div className="w-6 h-6"></div>
+                  {tokens.map((t, i) => <div key={`c-head-${i}`} className="text-center text-slate-400 font-bold w-6 flex items-center justify-center">{t}</div>)}
+                  {tokens.map((row, r) => (
+                    <React.Fragment key={`row-${r}`}>
+                      <div className="text-right pr-2 text-slate-400 font-bold h-6 flex items-center justify-end">{row}</div>
+                      {tokens.map((col, c) => {
+                        const allowed = c <= r;
+                        return (
+                          <div key={`cell-${r}-${c}`} className={`w-6 h-6 rounded flex items-center justify-center border transition-colors ${allowed ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300' : 'bg-slate-800/40 border-slate-800 text-slate-700'}`}>
+                            {allowed ? '1' : <Icons.Lock size={10} />}
+                          </div>
+                        );
+                      })}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+              <p className="text-[10px] text-slate-500 mt-3 text-center px-4">행(Row)의 단어는 열(Column)의 단어가 자신보다 앞서거나 같을 때만 정보를 볼 수 있다.</p>
+            </div>
+
+            {/* Right: Implicit Encoding Experiment */}
+            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 flex flex-col items-center justify-center h-full">
+               <p className="text-center text-slate-500 text-[10px] font-bold mb-4 uppercase tracking-widest">Implicit Context Test</p>
+               
+               <div 
+                className={`w-full p-3 rounded-lg border-2 border-dashed transition-all duration-300 cursor-pointer text-center mb-4 ${hasContext ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-slate-700 bg-transparent opacity-60 hover:opacity-80'}`}
+                onClick={() => setHasContext(!hasContext)}
+              >
+                <p className="text-xs text-emerald-400 font-bold mb-1">Context Block (Toggle)</p>
+                <p className="text-xs text-slate-400">"어제 저축하려고..."</p>
+              </div>
+
+              <div className="text-center space-y-3 w-full">
+                <div className="text-base font-bold text-slate-200 bg-slate-950 px-3 py-2 rounded border border-slate-800">
+                  "나는 <span className="text-amber-400 underline decoration-amber-400/30 underline-offset-4">은행</span>에..."
+                </div>
+                
+                <div className="flex items-center justify-center pt-2">
+                   {hasContext ? (
+                      <div className="px-3 py-1.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-bold">
+                        "간다" (장소 의미로 확정)
+                      </div>
+                   ) : (
+                      <div className="px-3 py-1.5 rounded bg-slate-800 border border-slate-700 text-slate-400 text-xs font-bold">
+                        "간다?" / "먹는다?" (의미 모호)
+                      </div>
+                   )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const KVCacheDemo = () => {
+      const [query, setQuery] = useState('');
+      const data = [
+        { id: 1, key: '고양이 썸네일', value: 'Video: Cute Cat', tags: ['고양이', 'cat', '동물', '귀여움'] },
+        { id: 2, key: '파스타 썸네일', value: 'Video: Pasta Recipe', tags: ['파스타', 'pasta', '요리', '레시피'] },
+        { id: 3, key: '뉴스 속보', value: 'Video: Breaking News', tags: ['뉴스', 'news', '속보'] },
+      ];
+      const match = data.find((d) => query && d.tags.some((t) => query.toLowerCase().includes(t.toLowerCase())));
+      return (
+        <div className="glass-panel p-6 rounded-2xl">
+          <div className="flex items-center gap-3 mb-6"><Icons.Search size={18} className="text-amber-400" /><h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">YouTube 비유로 보는 KV Cache</h4></div>
+          <div className="space-y-8">
+            <div className="relative group">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-amber-500 transition-colors z-10"><Icons.Search size={18}/></span>
+              <input 
+                type="text" 
+                placeholder="검색어를 입력하세요 (예: 고양이, 파스타, 뉴스)" 
+                value={query} 
+                onChange={(e) => setQuery(e.target.value)} 
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pl-12 pr-4 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 transition-colors relative z-0" 
+              />
+            </div>
+            
+            <div className="flex flex-col lg:flex-row gap-6 items-stretch">
+              <div className="flex-1 border border-amber-500/20 bg-amber-500/5 p-4 rounded-xl min-w-[200px]">
+                <p className="text-[10px] text-amber-400 font-bold mb-3 flex items-center gap-2 uppercase tracking-wider"><Icons.Key size={12} /> Cached Keys (Thumbnails)</p>
+                <div className="space-y-2">
+                  {data.map((d) => (
+                    <div key={d.id} className={`p-2.5 rounded-lg text-xs transition-all flex items-center gap-3 border ${match && match.id === d.id ? 'bg-amber-500/20 border-amber-500/50 text-white font-bold' : 'bg-slate-900/50 border-slate-800 text-slate-400'}`}>
+                      <div className="w-6 h-5 bg-slate-800 rounded flex items-center justify-center text-[9px] text-slate-600 shrink-0">IMG</div>
+                      <span>{d.key}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-center text-slate-600">
+                <Icons.ArrowRight size={20} className="hidden lg:block"/>
+                <Icons.ArrowDown size={20} className="lg:hidden"/>
+              </div>
+              
+              <div className="flex-1 border border-emerald-500/20 bg-emerald-500/5 p-4 rounded-xl min-w-[200px] flex flex-col">
+                <p className="text-[10px] text-emerald-400 font-bold mb-3 w-full text-left flex items-center gap-2 uppercase tracking-wider"><Icons.Film size={12} /> Retrieved Value</p>
+                <div className="flex-1 flex items-center justify-center bg-slate-900/50 rounded-lg border border-slate-800 min-h-[100px]">
+                  {match ? (
+                    <div className="text-center animate-fade-in">
+                      <div className="text-blue-400 mb-1 flex justify-center"><Icons.Film size={28} /></div>
+                      <div className="text-sm font-bold text-white">{match.value}</div>
+                    </div>
+                  ) : (
+                    <div className="text-[10px] text-slate-500 flex items-center gap-2"><Icons.HelpCircle size={12} /> 검색어와 일치하는 키를 찾아보세요</div>
+                  )}
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-slate-400 leading-relaxed">
+               유튜브 검색에서 검색어(Query)는 매번 바뀌지만 썸네일(Key)과 영상 내용(Value)은 변하지 않는다. LLM도 마찬가지로, 방대한 문맥 속에서 변하지 않는 정보(Key, Value)를 미리 계산해두고 <strong>캐시(Cache)</strong>에 저장함으로써, 매번 처음부터 다시 계산하는 비효율을 막는다.
+            </p>
+          </div>
+        </div>
+      );
+    };
+
+    const KVZipDemo = () => {
+      const [step, setStep] = useState(0);
+      const contextText = [
+        { id: 1, text: 'System', imp: true }, { id: 2, text: 'error', imp: true },
+        { id: 3, text: 'occurred', imp: false }, { id: 4, text: 'during', imp: false },
+        { id: 5, text: 'critical', imp: true }, { id: 6, text: 'process', imp: false },
+        { id: 7, text: 'restart', imp: true }, { id: 8, text: 'sequence', imp: false },
+      ];
+      const runSimulation = () => { if (step !== 0) return; setStep(1); setTimeout(() => setStep(2), 1200); setTimeout(() => setStep(3), 2600); };
+      const reset = () => setStep(0);
+      return (
+        <div className="glass-panel p-6 rounded-2xl">
+          <div className="flex items-center gap-3 mb-6"><Icons.RefreshCw size={18} className="text-pink-400" /><h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">KVZip: 압축 시뮬레이션</h4></div>
+          
+          <div className="grid md:grid-cols-3 gap-3 mb-6">
+            <div className={`p-3 rounded-xl border transition-all duration-300 ${step >= 1 ? 'bg-pink-500/10 border-pink-500/40' : 'bg-slate-900/40 border-slate-800'}`}>
+              <span className="text-[9px] font-bold text-slate-500 block mb-1">STEP 1</span>
+              <h5 className="text-xs font-bold text-pink-300">Prompt Injection</h5>
+              <p className="text-[10px] text-slate-400 mt-0.5">"Repeat Context"</p>
+            </div>
+            <div className={`p-3 rounded-xl border transition-all duration-300 ${step >= 2 ? 'bg-blue-500/10 border-blue-500/40' : 'bg-slate-900/40 border-slate-800'}`}>
+              <span className="text-[9px] font-bold text-slate-500 block mb-1">STEP 2</span>
+              <h5 className="text-xs font-bold text-blue-300">Measure Attention</h5>
+              <p className="text-[10px] text-slate-400 mt-0.5">Identify High Scores</p>
+            </div>
+            <div className={`p-3 rounded-xl border transition-all duration-300 ${step >= 3 ? 'bg-emerald-500/10 border-emerald-500/40' : 'bg-slate-900/40 border-slate-800'}`}>
+              <span className="text-[9px] font-bold text-slate-500 block mb-1">STEP 3</span>
+              <h5 className="text-xs font-bold text-emerald-300">Eviction</h5>
+              <p className="text-[10px] text-slate-400 mt-0.5">Remove Low Scores</p>
+            </div>
+          </div>
+
+          <div className="bg-slate-950/80 p-5 rounded-xl border border-slate-800 min-h-[100px] flex items-center justify-center relative overflow-hidden mb-6">
+            <div className="flex flex-wrap gap-2 justify-center relative z-10 w-full px-4">
+              {step === 3 && contextText.filter((t) => !t.imp).map((t) => (
+                <span key={`ghost-${t.id}`} className="absolute text-xs text-red-500/30 animate-ping select-none font-bold" style={{ left: `${Math.random() * 80}%`, top: `${Math.random() * 60}%` }}>{t.text}</span>
+              ))}
+              {contextText.filter((t) => step < 3 || t.imp).map((token) => {
+                 let styleClass = "bg-slate-800 text-slate-300 border border-slate-700";
+                 if (step === 2) {
+                    styleClass = token.imp 
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/40 border-blue-500 scale-105 z-10" 
+                      : "bg-slate-800 text-slate-600 opacity-40 border-slate-800";
+                 } else if (step === 3) {
+                    styleClass = "bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-600/20";
+                 }
+                 return (
+                   <span key={token.id} className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-500 whitespace-nowrap ${styleClass}`}>
+                     {token.text}
+                   </span>
+                 );
+              })}
+            </div>
+          </div>
+
+          <div className="flex justify-center">
+            {step === 3 ? (
+              <button onClick={reset} className="px-6 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-bold transition-colors text-white border border-slate-600">Reset Simulation</button>
+            ) : (
+              <button onClick={runSimulation} disabled={step !== 0} className={`px-6 py-2 rounded-lg font-bold text-xs transition-all flex items-center gap-2 shadow-lg ${step === 0 ? 'bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white' : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'}`}>{step === 0 ? 'Start KVZip Process' : 'Processing...'}</button>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    const NewIdeaDemo = () => {
+      const [selectedOption, setSelectedOption] = useState(null);
+      const questions = [
+        '선택된 Option만 중요하게 기억할까?',
+        '나머지 제안은 삭제해도 될까? (Why rejected?)',
+        '사용자의 선호 스타일로 기록할까?'
+      ];
+      return (
+        <div className="glass-panel p-6 rounded-2xl border border-pink-500/20">
+          <div className="flex items-center gap-3 mb-6"><Icons.Brain size={18} className="text-pink-400" /><h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Cognitive Process Simulation</h4></div>
+          
+          <div className="flex flex-col lg:flex-row gap-6">
+            <div className="w-full lg:w-1/3 bg-slate-900/50 rounded-xl p-4 border border-slate-800 flex flex-col">
+              <p className="text-[10px] font-bold text-slate-500 mb-3 uppercase tracking-wider">Multi-turn Chat</p>
+              <div className="space-y-3 flex-1">
+                <div className="flex gap-2">
+                  <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-bold text-white shrink-0">AI</div>
+                  <div className="bg-slate-800 p-3 rounded-2xl rounded-tl-none text-xs text-slate-300 border border-slate-700 w-full">
+                    <p className="mb-2">세 가지 옵션을 제안한다:</p>
+                    <div className="space-y-1.5">
+                      {[1, 2, 3].map((opt) => (
+                        <button 
+                          key={opt} 
+                          onClick={() => setSelectedOption(opt)} 
+                          className={`w-full text-left p-2 rounded-lg border transition-all text-[11px] font-medium ${selectedOption === opt ? 'border-pink-500/50 bg-pink-500/10 text-pink-200' : 'border-slate-700 hover:bg-slate-700 hover:border-slate-600 text-slate-400'}`}
+                        >
+                          <span className="mr-2 opacity-50">{selectedOption === opt ? '●' : '○'}</span> Option {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 bg-slate-900/30 rounded-xl p-6 border border-slate-800 flex flex-col items-center justify-center relative min-h-[200px]">
+              {selectedOption ? (
+                <div className="w-full max-w-sm animate-fade-in space-y-4">
+                  <div className="flex justify-center">
+                     <div className="relative">
+                       <div className="absolute inset-0 bg-pink-500/20 blur-xl rounded-full"></div>
+                       <Icons.Brain size={56} className="text-pink-400 relative z-10" />
+                     </div>
+                  </div>
+                  <div className="space-y-2">
+                    <h5 className="text-[10px] font-bold text-slate-500 text-center uppercase mb-1">Cognitive Evaluation</h5>
+                    {questions.map((q, idx) => (
+                      <div key={idx} className={`p-3 rounded-lg border flex items-start gap-2 shadow-sm ${idx === 0 ? 'bg-slate-900/80 border-pink-500/30 text-pink-200' : idx === 1 ? 'bg-slate-900/80 border-slate-600/50 text-slate-400' : 'bg-slate-900/80 border-purple-500/30 text-purple-300'}`}>
+                        <Icons.HelpCircle size={14} className="shrink-0 mt-0.5 opacity-70" />
+                        <span className="text-xs font-medium">{q}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center text-slate-500">
+                  <Icons.Brain size={40} className="mx-auto mb-3 opacity-20" />
+                  <p className="text-xs">왼쪽 채팅창에서 옵션을 선택하여<br/>인지적 판단 과정을 확인해보자.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const App = () => {
+      return (
+        <div className="kv-scope min-h-screen bg-transparent relative overflow-x-hidden pb-20">
+          {/* <header className="relative pt-20 pb-16 px-4 text-center">
+            <div className="relative z-10 max-w-3xl mx-auto space-y-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/50 border border-slate-700/50 text-slate-400 text-[10px] font-mono backdrop-blur-md">
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-pulse"></span>
+                Insight for AI Research
+              </div>
+              <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-[1.15]">
+                LLM은 어떻게 기억하고,<br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">무엇을 잊어야 할까?</span>
+              </h1>
+              <p className="text-base text-slate-400 max-w-xl mx-auto leading-relaxed font-light">
+                KV Cache의 원리부터 최신 압축 기법인 KVZip, 그리고 인간의 인지 과정을 모방한 새로운 메모리 관리 아이디어까지 심층적으로 탐구한다.
+              </p>
+            </div>
+          </header> */}
+
+          <main className="relative z-10 max-w-3xl mx-auto px-6 space-y-20 pt-10">
+            <section id="section1">
+              <SectionHeader num={1} title="LLM은 문맥을 어떻게 이해할까?" subtitle="The Mechanics of Attention" />
+              <div className="prose prose-invert max-w-none text-slate-300 leading-relaxed text-sm mb-6 space-y-3">
+                <p>
+                    언어 모델은 사람이 글을 읽을 때 중요한 부분에 집중하는 것과 비슷한 원리로 글을 이해하는데, 이를 <strong>어텐션 메커니즘(Attention mechanism)</strong>이라고 한다. 언어 모델이 읽는 글 전체는 문맥(Context)이라고 하며, 문맥을 구성하는 낱말 하나하나는 토큰(Token)이라고 부른다. 엄밀히 말하면 토큰과 단어가 1:1로 대응하지는 않지만, 쉽게 '토큰 = 단어'라고 생각해도 무방하다. 어텐션은 기본적으로 문맥 속에서 어떤 토큰이 중요한지를 수치화하여 이를 점수로 매기는 기술이다. 이 때, 이 점수를 어텐션 스코어(Attention score)라고 한다.
+                </p>
+                <p>
+                    하지만 조금 더 구체적으로 들어가면, 어텐션은 단순히 개별 토큰의 중요도만 따지는 것이 아니다. 사실 어텐션의 핵심은 토큰과 토큰 사이의 관계를 정량화하는 것에 있다. 문장 속에서 어떤 단어의 정확한 의미를 파악하려면 그 단어 하나만 보는 것이 아니라, 함께 등장한 다른 단어들 중 누구와 연결되어야 하는지를 따져봐야 하기 때문이다. 즉, 어텐션 스코어는 문맥을 구성하는 모든 단어 쌍에 대해 서로가 서로에게 얼마나 중요한 힌트가 되는지를 계산한 결과값이다.
+                </p>
+                <p>
+                    아래 예시를 보면 이 원리를 명확히 알 수 있다. 그림에서 'it(그것)'이라는 단어를 선택하면 'animal(95%)'과 'tired(60%)'라는 단어가 밝게 빛난다. 이는 모델이 대명사 'it'을 해석하기 위해 문장에 있는 수많은 단어 중에서 'animal'과 'tired'를 가장 중요한 짝으로 선택했다는 뜻이다. 모델은 이렇게 단어들 사이의 관계 점수를 계산함으로써 'it'이 가리키는 대상이 'animal'임을 정확하게 이해한다.
+                </p>
+              </div>
+              <AttentionDemo />
+            </section>
+
+            <section id="section2">
+              <SectionHeader num={2} title="너무 긴 문맥의 딜레마" subtitle="Long Context Scenario" />
+              <div className="prose prose-invert max-w-none text-slate-300 leading-relaxed text-sm mb-6 space-y-3">
+                <p>
+                  문제는 처리해야 할 문맥이 극단적으로 길어지는 <strong>Long context scenario</strong>에서 발생한다. 문맥이 길어져도 일부 토큰은 여전히 높은 어텐션 스코어를 가지지만, 결국에는 문맥이 길어질수록 모델의 Attention(집중력)이 여러 토큰으로 분산된다. 그 결과 전체적인 분포가 <strong>균일 분포(Uniform distribution)</strong>에 가까워진다.
+                </p>
+                <p>
+                    즉, '어디가 중요한지'에 대한 판단력이 흐려지는 것이다. 더 큰 현실적인 문제는 수만 개의 토큰이 서로 어떤 관계를 갖는지를 정량화한 이 Attention score를 모두 저장하려다 보니, 메모리 사용량이 폭발적으로 증가하여 비용 효율성이 급격히 떨어진다.
+                </p>
+              </div>
+              <LongContextDemo />
+            </section>
+
+            <section id="section3">
+              <SectionHeader num={3} title="순차적 처리와 정보의 압축" subtitle="Sequential Processing & Encoding" />
+              <div className="prose prose-invert max-w-none text-slate-300 leading-relaxed text-sm mb-6 space-y-3">
+                <p>
+                  언어 모델은 주어진 문맥 전체를 한 번에 이해하는 게 아니라, 실제로는 토큰을 하나씩 순차적으로 처리하며 문맥에 대한 이해를 확장한다. 이때 <strong>Causal masking</strong>이라는 기술이 사용되어, 모델이 미래의 단어를 미리 보지 못하게 차단한다.
+                </p>
+                <p>
+                   흥미로운 점은, 이 과정에서 <strong>암시적 인코딩(Implicit Encoding)</strong>이 일어난다는 것이다. 각 토큰이 순차적으로 처리되는 과정에서, 뒤에 나오는 토큰은 앞에 나왔던 토큰의 정보를 간접적으로 포함하게 된다. 다시 말하면, LLM은 이산적(Discrete)인 단어들을 처리하지만, 그 내부 상태(Hidden state)에는 지금까지 읽은 모든 문맥의 정보가 압축되어 있다.
+                </p>
+                <p>
+                    이 점이 언어 모델과 사람이 문맥을 이해하는 데서 발생하는 가장 큰 차이이다. 예를 들어, "(Some Context) 나는 은행" 이라는 텍스트가 주어진 상황을 생각해 보자. 인간은 앞의 문맥을 자르고 "나는 은행"만 본다면, 뒤에 "에 간다"가 올지, "을 먹는다"가 올지 알 수가 없다. 반면 언어 모델은 전체 문맥 처리가 끝나면 앞부분을 제거하더라도 압축된 정보를 통해 "은행" 뒤에 올 말을 어렵지 않게 결정할 수 있다. 
+                </p>
+              </div>
+              <CausalDemo />
+            </section>
+
+            <section id="section4">
+              <SectionHeader num={4} title="LLM의 기억 저장소: KV Cache" subtitle="KV Cache" />
+              <div className="prose prose-invert max-w-none text-slate-300 leading-relaxed text-sm mb-6 space-y-3">
+                <p>
+                  앞서 설명한 어텐션 스코어를 계산하기 위해 언어 모델은 각 토큰마다 Query, Key, Value라는 세 가지 요소를 만들어 사용한다. Query는 현재 시점에서 내가 찾고자 하는 정보이고, Key는 그 정보를 찾기 위한 일종의 식별자, Value는 그 안에 실제로 담긴 내용이다. 그런데 언어 모델은 한 번에 하나의 단어를 순차적으로 생성한다. 이를 자기회귀적(Autoregressive) 방식이라고 하는데, 이런 성질 때문에 문맥이 계속해서 달라지며 Query도 그에 따라 변하게 된다.
+                </p>
+                <p>
+                    여기서 중요한 점은 새로운 단어를 생성할 때 Query는 방금 생성된 토큰 딱 하나의 것만을 사용한다. 하지만 그에 맞는 답을 찾기 위해서는 문맥을 구성하는 토큰 각각의 Key와 Value를 전부 참고해야 한다. 그런데 과거 토큰들의 Key와 Value는 변하지 않으므로, 모델은 이를 매번 다시 계산하는 대신 메모리(캐시)에 미리 저장해 두고 필요할 때마다 꺼내 쓰는 효율적인 방법을 택한다. 이를 KV Cache라고 한다.
+                </p>
+                <p>
+                  아래 유튜브 검색 예시를 보자. 검색창에 입력하는 검색어(Query)는 그때그때 바뀌지만, 이미 서버에 저장된 썸네일(Key)과 영상 내용(Value)은 변하지 않고 목록에 남아 있다. 검색할 때마다 모든 영상 데이터를 처음부터 다시 만드는 것이 아니라, 미리 만들어진 썸네일 목록(캐시)을 빠르게 훑어보고 원하는 영상을 찾는 것과 같다. 언어 모델도 마찬가지로 방대한 문맥 속에서 변하지 않는 정보를 캐시에 저장해 둠으로써 계산 속도를 획기적으로 개선할 수 있다.
+                </p>
+              </div>
+              <KVCacheDemo />
+            </section>
+
+            <section id="section5">
+              <SectionHeader num={5} title="KVZip: 중요한 것만 남기자" subtitle="Context Compression" />
+              <div className="prose prose-invert max-w-none text-slate-300 leading-relaxed text-sm mb-6 space-y-3">
+                <p>
+                  KV Cache는 근본적으로 불필요하게 연산을 반복하는 일을 줄여줄 뿐, 여전히 메모리 문제는 남아 있다. 따라서 해결되지 않은 메모리의 문제를 해결하기 위해, <strong>KVZip</strong>과 같은 압축 기술이 제안되었다. 앞서 뒤에 나오는 토큰은 앞에 나오는 토큰의 정보를 암시적으로 압축하고 있다고 하였다. 결국 "모든 정보를 다 저장할 필요는 없다"는 전제를 바탕으로 문맥, 또는 Cache를 압축하는 시도가 지속적으로 이뤄지고 있으며, KVZip도 그의 일환이다.
+                </p>
+                <p>
+                  KVZip은 모델이 <strong>"이전 문맥을 반복"</strong>하는 작업을 수행하게 한다. 이때 모델이 문맥을 반복하기 위해 강하게 집중(Attention)하는 토큰들은 '중요한 정보'로 분류하여 남기고, 그렇지 않은 토큰들은 과감히 삭제(Eviction)한다. 이를 통해 정보 손실을 최소화하면서 메모리 사용량을 획기적으로 줄일 수 있다. 인간에 비유하자면, "앞선 문장을 요약"하라는 작업이 주어졌을 때, 어떤 단어에 반복하는지 확인하는 과정이라고 볼 수 있다.
+                </p>
+              </div>
+              <KVZipDemo />
+            </section>
+
+            <section id="section6">
+              <SectionHeader num={6} title="Challenge: 인간의 인지" subtitle="New Idea Proposal" />
+              <div className="bg-slate-800/20 p-6 rounded-3xl border border-slate-700/50 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-pink-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                <div className="relative z-10 prose prose-invert max-w-none text-slate-300 leading-relaxed text-sm space-y-3">
+                  <p>
+                    이제 기술적 효율성을 넘어, <strong>인간의 인지 과정(Human Cognition)</strong>을 모방한 새로운 메모리 관리 방법을 고민해볼 때다. 인간은 모든 대화를 토시 하나 틀리지 않고 기억하지 않는다. 대신 대화의 '의도', '감정', '결론'과 같은 핵심 맥락을 기억한다.
+                  </p>
+                  <p>
+                    특히 끊임없이 이어지는 멀티 턴(Multi-turn) 채팅 상황에서 우리는 무엇을 남겨야 할까? 방대한 양의 채팅 로그가 쌓여 가지만, 그 중 정말 중요한 정보는 일부에 불과하다. 그런데 그 중에서 문맥을 이해하는 데 중요한 토큰은 무엇이며, 사용자를 이해하는 데 중요한 토큰은 무엇일까? 예를 들어, "언어 모델이 사용자를 칭찬하는 문장"은 문맥을 파악하는 데는 불필요하지만, 사용자의 성향을 파악하는 데는 도움이 될 지도 모른다. 그렇다면 또 사용자가 이런 대화 양식을 선호한다는 것은 어떻게 알 수 있을까?
+                  </p>
+                  <ul className="space-y-2 mt-2 pl-2 marker:text-pink-500 text-sm">
+                    <li className="flex items-start gap-2">
+                      <span className="text-pink-400 font-bold mt-1.5 text-[10px]">●</span>
+                      <span>사용자가 수많은 제안 중 하나를 <strong>먼저 선택</strong>했다면, 그 선택만이 중요한 정보일까?</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-pink-400 font-bold mt-1.5 text-[10px]">●</span>
+                      <span>선택받지 못한 제안은 무의미 할까? 선택받지 못한 이유가 오히려 중요한 단서가 되지는 않을까?</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-pink-400 font-bold mt-1.5 text-[10px]">●</span>
+                      <span>사용자의 미묘한 말투나 반응 속도 같은 <strong>암묵적 피드백</strong>은 어떻게 저장하고 평가되어야 할까?</span>
+                    </li>
+                  </ul>
+                  <p className="pt-4 font-bold text-white border-t border-white/5 mt-4">
+                    단순한 정보 압축을 넘어, 사용자의 '맥락'과 '마음'을 이해하는 메모리 시스템은 어떻게 구축할 수 있을까?
+                  </p>
+                </div>
+              </div>
+              <div className="mt-8">
+                <NewIdeaDemo />
+              </div>
+            </section>
+          </main>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

@@ -549,6 +549,19 @@
                             newScript.appendChild(document.createTextNode(oldScript.innerHTML));
                             oldScript.parentNode.replaceChild(newScript, oldScript);
                         });
+
+                        if (contentEl.querySelector('script[type="text/babel"]')) {
+                            let attempts = 0;
+                            const tryBabel = () => {
+                                if (window.Babel && typeof window.Babel.transformScriptTags === 'function') {
+                                    window.Babel.transformScriptTags();
+                                } else if (attempts < 10) {
+                                    attempts += 1;
+                                    setTimeout(tryBabel, 150);
+                                }
+                            };
+                            tryBabel();
+                        }
                     } else {
                         const mdRes = await fetch(`${basePath}/index.md`);
                         const mdText = await mdRes.text();

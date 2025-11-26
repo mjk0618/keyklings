@@ -1,9 +1,9 @@
 {
   "title": "KV Cache Compression: A Sketch",
   "description": "Reducing memory footprint in long-context inference without losing perplexity.",
-  "date": "2025.05.20",
+  "date": "2025.11.25",
   "tags": ["MEMORY", "OPTIMIZATION"],
   "author": "Keyklings",
   "coordinates": "Latent Space [88.21, -12.04]",
-  "type": "markdown"
+  "type": "html"
 }
