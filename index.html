@@ -538,30 +538,41 @@
                     }
 
                     const basePath = `pages/${boardId}/${slug}`;
-                    if(meta.type === 'html') {
-                        const htmlRes = await fetch(`${basePath}/view.html`).catch(() => fetch(`${basePath}/index.html`));
-                        const htmlText = await htmlRes.text();
+                    if (meta.type === 'html') {
                         contentEl.classList.remove('prose');
-                        contentEl.innerHTML = htmlText;
-                        Array.from(contentEl.querySelectorAll("script")).forEach(oldScript => {
-                            const newScript = document.createElement("script");
-                            Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-                            newScript.appendChild(document.createTextNode(oldScript.innerHTML));
-                            oldScript.parentNode.replaceChild(newScript, oldScript);
+                        contentEl.innerHTML = '';
+
+                        let htmlText = '';
+                        try {
+                            const viewPath = `${basePath}/view.html`;
+                            const res = await fetch(viewPath);
+                            if (res.ok) {
+                                htmlText = await res.text();
+                            } else {
+                                const fallback = await fetch(`${basePath}/index.html`);
+                                if (!fallback.ok) throw new Error('HTML view not found');
+                                htmlText = await fallback.text();
+                            }
+                        } catch (err) {
+                            contentEl.innerHTML = `<div class="text-center py-16 text-red-500 font-mono">Failed to load content.</div>`;
+                            throw err;
+                        }
+
+                        const iframe = document.createElement('iframe');
+                        iframe.className = 'w-full border-0 rounded-2xl bg-transparent';
+                        iframe.loading = 'lazy';
+                        iframe.referrerPolicy = 'no-referrer';
+                        iframe.srcdoc = htmlText;
+                        iframe.addEventListener('load', () => {
+                            try {
+                                const doc = iframe.contentDocument || iframe.contentWindow?.document;
+                                const height = doc?.documentElement?.scrollHeight || doc?.body?.scrollHeight || 1200;
+                                iframe.style.height = `${height}px`;
+                            } catch (err) { console.warn(err); }
                         });
 
-                        if (contentEl.querySelector('script[type="text/babel"]')) {
-                            let attempts = 0;
-                            const tryBabel = () => {
-                                if (window.Babel && typeof window.Babel.transformScriptTags === 'function') {
-                                    window.Babel.transformScriptTags();
-                                } else if (attempts < 10) {
-                                    attempts += 1;
-                                    setTimeout(tryBabel, 150);
-                                }
-                            };
-                            tryBabel();
-                        }
+                        contentEl.appendChild(iframe);
+                        return;
                     } else {
                         const mdRes = await fetch(`${basePath}/index.md`);
                         const mdText = await mdRes.text();
